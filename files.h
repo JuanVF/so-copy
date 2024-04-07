@@ -10,7 +10,7 @@ char pathOrigen[MAX_PATH_SIZE];
 char pathDestino[MAX_PATH_SIZE];
 
 bool createFolder(char *path);
-bool createFile(char *path, unsigned char *data, size_t dataSize);
+bool copyFile(char *source, char *destination);
 bool doesPathExists(char *path);
 
 #endif

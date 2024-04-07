@@ -6,10 +6,15 @@
 #include <sys/stat.h>
 #include <string.h>
 #include <dirent.h>
+#include <sys/msg.h>
+#include <signal.h>
 
 void setNodesByFolderName(struct TreeNode *source);
 struct TreeNode* initializeTree(char *sourcePath);
 int _initializeTree(struct TreeNode *node, int depth);
+void initFolderCopy(struct TreeNode *node, int depth, char *destiny);
+void initArchiveCopy(struct LinkedList *archiveList);
+void mapTreeToArchiveList(struct LinkedList *archiveList, struct TreeNode *node, int depth, char *destiny);
 
 // setNodesByFolderName will set the nodes given a path
 void setNodesByFolderName(struct TreeNode *source) {
@@ -58,7 +63,7 @@ void setNodesByFolderName(struct TreeNode *source) {
             } else {
                 continue;
             }
-
+            
             struct TreeNode *newNode = createTree(source->path, entry->d_name, type, size, fileSizeType, source);
 
             appendLinkedListItem(source->children, newNode);
@@ -87,31 +92,6 @@ int _initializeTree(struct TreeNode* node, int depth) {
             continue;
         }
 
-        spanTabs(depth);
-        if (value->type == FOLDER) {
-            printf("-%s/ \n", value->name);
-        } else {
-            char buffer[100];
-
-            if (value->fileSizeType == BYTES){
-                strcpy(buffer, "Bytes");
-            }
-
-            if (value->fileSizeType == KILOBYTES){
-                strcpy(buffer, "KB");
-            }
-
-            if (value->fileSizeType == MEGABYTES){
-                strcpy(buffer, "MG");
-            }
-
-            if (value->fileSizeType == GIGABYTES){
-                strcpy(buffer, "GB");
-            }
-
-            printf("-%s [SIZE=%.2f %s]\n", value->name, value->size, buffer);
-        }
-
         _initializeTree(value, depth + 1);
     }
 
@@ -122,10 +102,132 @@ int _initializeTree(struct TreeNode* node, int depth) {
 struct TreeNode* initializeTree(char *sourcePath) {
     struct TreeNode* node = createTree(sourcePath, "", FOLDER, 0, BYTES, NULL);
     
-    printf("%s\n", node->path);
     _initializeTree(node, 1);
 
     return node;
+}
+
+// initCopy recursively copy each folder from a directory to another
+void initFolderCopy(struct TreeNode *node, int depth, char *destiny) {
+    if (node == NULL || node->children == NULL || node->type == ARCHIVE) {
+        return;
+    }
+
+    // resources are limited so we sent items in batches
+    int resources = getAmountFreeResources();
+    int batches = (node->children->length + resources) / resources;
+
+    for (int b = 0; b < batches; b++) {
+        int start = b * resources;
+        int end = start + resources;
+        int usedResourcesCounter = 0;
+
+        if (end > node->children->length) end = node->children->length; // Make sure we don't go out of bounds
+
+        // We will create each directory items in batches
+        for (int i = start; i < end; i++) {
+            TreeNode * currentNode = getLinkedListItem(node->children, i);
+
+            if (currentNode == NULL || currentNode->type == ARCHIVE) {
+                continue;
+            }
+
+            char buffer [PATH_SIZE];
+            ProcessItem * process = pickFreeProcess();
+
+            sprintf(buffer, "%s/%s", destiny, currentNode->name);
+
+            onSendNodeMessage(process, buffer, CREATE_FOLDER);
+
+            usedResourcesCounter++;
+        }
+
+        // We will wait for pool resources to be free
+        for (int i = 0; i < usedResourcesCounter; i++) {
+            struct message msg;
+            msgrcv(messageQueueId, &msg, sizeof(msg), FATHER_ID, 0);
+
+            setProcessFree(atoi(msg.text));
+        }
+    }
+
+    for (int i = 0; i < node->children->length; i++) {
+        TreeNode * currentNode = getLinkedListItem(node->children, i);
+
+        if (currentNode->type == ARCHIVE) continue;
+
+        char newDestiny[PATH_SIZE];
+
+        sprintf(newDestiny, "%s/%s", destiny, currentNode->name);
+
+        initFolderCopy(currentNode, depth + 1, newDestiny);
+    }
+}
+
+// mapTreeToArchiveList maps a tree to an archive list
+void mapTreeToArchiveList(struct LinkedList *archiveList, struct TreeNode *node, int depth, char *destiny) {
+    if (node == NULL || node->children == NULL) {
+        return;
+    }
+
+    for (int i = 0; i < node->children->length; i++) {
+        TreeNode * currentNode = getLinkedListItem(node->children, i);
+
+        if (currentNode == NULL) continue;
+
+        char newDestiny[PATH_SIZE];
+
+        sprintf(newDestiny, "%s/%s", destiny, currentNode->name);
+
+        if (currentNode->type == FOLDER) {
+            mapTreeToArchiveList(archiveList, currentNode, depth + 1, newDestiny);
+        } else {
+            struct TreeNode * mapped = createTree("", "", ARCHIVE, currentNode->size, currentNode->fileSizeType, NULL);
+
+            mapped->path = strdup(newDestiny);
+
+            appendLinkedListItem(archiveList, mapped);
+        }
+    }
+}
+
+void initArchiveCopy(struct LinkedList *archiveList) {
+    int resources = getAmountFreeResources();
+    int batches = (archiveList->length + resources) / resources;
+
+    for (int b = 0; b < batches; b++) {
+        int start = b * resources;
+        int end = start + resources;
+        int usedResourcesCounter = 0;
+
+        if (end > archiveList->length) end = archiveList->length; // Make sure we don't go out of bounds
+
+        // We will create each directory items in batches
+        for (int i = start; i < end; i++) {
+            TreeNode * currentNode = getLinkedListItem(archiveList, i);
+
+            if (currentNode == NULL || currentNode->type == FOLDER) {
+                continue;
+            }
+
+            char buffer [PATH_SIZE];
+            ProcessItem * process = pickFreeProcess();
+
+            strcpy(buffer, currentNode->path);
+
+            onSendNodeMessage(process, buffer, CREATE_ARCHIVE);
+
+            usedResourcesCounter++;
+        }
+
+        // We will wait for pool resources to be free
+        for (int i = 0; i < usedResourcesCounter; i++) {
+            struct message msg;
+            msgrcv(messageQueueId, &msg, sizeof(msg), FATHER_ID, 0);
+
+            setProcessFree(atoi(msg.text));
+        }
+    }
 }
 
 int main (int argc, char *argv[]){
@@ -140,18 +242,9 @@ int main (int argc, char *argv[]){
         pathDestino[strcspn(pathDestino, "\n")] = 0;
 
     // Receive the folder paths through parameters
-    } else if (argc >= 3) {
+    } else {
         strncpy(pathOrigen, argv[1], MAX_PATH_SIZE - 1);
         strncpy(pathDestino, argv[2], MAX_PATH_SIZE - 1);
-    } else {
-        printf("Numero de argumentos no permitido. Debe ser <path_origen> <path_destino> o  <path_origen> <path_destino> --enable-debug\n");
-        return 1;
-    }
-
-    // we don't want all prints to be showed
-    for (int i = 0; i < argc; i++) {
-        if (strcmp(argv[i], "--enable-debug") == 0) {
-        }
     }
 
     if (!doesPathExists(pathOrigen)) {
@@ -171,16 +264,43 @@ int main (int argc, char *argv[]){
     if (isFather) {
         struct TreeNode *sourceNode = initializeTree(pathOrigen);
 
+        if (sourceNode == NULL) {
+            printf("Algo ha salido mal...");
+            freeProcessPool();
+
+            return 1;
+        }
+
+        initFolderCopy(sourceNode, 0, "");
+
+        struct LinkedList * archiveList = (struct LinkedList*) malloc(sizeof(struct LinkedList));
+
+        mapTreeToArchiveList(archiveList, sourceNode, 0, "");
+
+        initArchiveCopy(archiveList);
+
+        // let all process die
         for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
             if (processPool[i] != NULL) {
+                onSendNodeMessage(processPool[i], "KILLING", KILLING);
+            }
+        }
+
+        for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
+            if (processPool[i] != NULL) {
+                // kill(processPool[i]->pid, SIGKILL);
                 wait(NULL);
             }
         }
 
+        freeProcessPool();
+
+        if (isFather) {
+            msgctl(messageQueueId, IPC_RMID, NULL);
+        }
+
         printf("Saliendo...\n");
     }
-
-    freeProcessPool();
 
     return 0;
 }

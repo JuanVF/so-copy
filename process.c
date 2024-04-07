@@ -1,4 +1,6 @@
 #include "process.h"
+#include "tree.h"
+#include "files.h"
 
 #include <stdio.h>
 #include <stdbool.h>
@@ -10,20 +12,119 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <time.h>
 
 int messageQueueId = -1;
 int isFather = 1;
 
-// onMessageReceived will 
+// onSendNodeMessage will send messages to an specific process
+void onSendNodeMessage(ProcessItem * process, char message [PATH_SIZE], enum ProcessState mode) {
+    process->isFree = false;
+
+    struct message msg;
+
+    msg.mode = mode;
+    msg.type = process->id + 1;
+    strcpy(msg.text, message);
+
+    int status = msgsnd(messageQueueId, &msg, sizeof(msg), 0);
+}
+
+// onMessageReceived will be a listener for messages
 void onMessageReceived(ProcessItem * process) {
+    while (1) {
+        struct message msg;
+        int id = process->id;
+
+        int status = msgrcv(messageQueueId, &msg, sizeof(msg), id + 1, 0);
+
+        if (status < 0) {
+            usleep(1000 * 100);
+            continue;
+        }
+
+        if (msg.mode == KILLING) {
+            break;
+        }
+
+        if (msg.mode == CREATE_FOLDER) {
+            char buffer [1028];
+
+            sprintf(buffer, "%s/%s", pathDestino, msg.text);
+            printf("creando folder %s\n", buffer);
+
+            createFolder(buffer);
+        }
+
+        if (msg.mode == CREATE_ARCHIVE) {
+            char bufferOrigen [1028];
+            char bufferDestino [1028];
+
+            sprintf(bufferOrigen, "%s/%s", pathOrigen, msg.text);
+            sprintf(bufferDestino, "%s/%s", pathDestino, msg.text);
+            printf("copiando archivo: %s\n", msg.text);
+
+            copyFile(bufferOrigen, bufferDestino);
+        }
+
+        struct message fatherMsg;
+        fatherMsg.type = FATHER_ID;
+
+        sprintf(fatherMsg.text, "%d", id);
+        status = msgsnd(messageQueueId, &fatherMsg, sizeof(fatherMsg), 0);
+
+        if (status < 0) {
+            printf("whoopsie error sending to father...\n");
+        }
+    }
+}
+
+void setProcessFree(int id) {
+    for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
+        if (processPool[i] != NULL && processPool[i]->id == id) {
+            processPool[i]->isFree = true;
+        }
+    }
+}
+
+// getAmountFreeResources returns the amount of free resources
+int getAmountFreeResources() {
+    int counter = 0;
+    for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
+        if (processPool[i] != NULL && processPool[i]->isFree) {
+            counter++;
+        }
+    }
+
+    return counter;
+}
+
+// pickFreeProcess will pick the first free process
+struct ProcessItem * pickFreeProcess() {
+    for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
+        if (processPool[i] != NULL && processPool[i]->isFree) {
+            return processPool[i];
+        }
+    }
+
+    return NULL;
 }
 
 // initMessageQueue will initialize the message queue
 bool initMessageQueue() {
-    int status;
-    key_t messageQueueKey = 999;
+    srand(time(NULL));
 
-    messageQueueId = msgget(messageQueueKey, IPC_CREAT | S_IRUSR | S_IWUSR);
+    int randomId = rand() % 255;
+    int status;
+    key_t messageQueueKey = ftok("files.c", randomId);
+
+    if (messageQueueKey < 0) messageQueueKey *= -1;
+
+    printf("%d\n", (int) messageQueueKey);
+
+    messageQueueId = msgget(messageQueueKey, 0666 | IPC_CREAT);
+
+    printf("%d\n", (int) messageQueueId);
 
     return true;
 }
@@ -56,6 +157,7 @@ bool initProcessPool() {
 
         processPool[i]->id = i;
         processPool[i]->pid = pid;
+        processPool[i]->isFree = true;
 
         if (pid != 0) {
         } else {
@@ -63,7 +165,7 @@ bool initProcessPool() {
             isFather = 0;
             childInfo = processPool[i];
             // Fork will be stuck receiving messages and then break the for
-            onMessageReceived(processPool[i]);
+            onMessageReceived(childInfo);
             break;
         }
     }

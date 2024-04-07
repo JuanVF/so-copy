@@ -1,6 +1,7 @@
 #include "files.h"
 #include <stdbool.h>
 #include <stdio.h>
+#include <sys/stat.h>
 
 // Given a path + folder name it will create a folder in there
 bool createFolder(char *path){
@@ -18,7 +19,7 @@ bool doesPathExists(char *path){
     return is_exist;
 }
 
-// Creates a file by its path and data
-bool createFile(char *path, unsigned char *data, size_t dataSize) {
+// Copies a file from source to destination using a buffer.
+bool copyFile(char *source, char *destination) {
     return true;
 }

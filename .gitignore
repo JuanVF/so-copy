@@ -2,5 +2,5 @@
 main
 main.o
 
-test_folder/
+test_*/
 copy_folder/
