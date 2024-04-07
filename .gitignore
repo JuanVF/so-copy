@@ -1,0 +1,6 @@
+.vscode/
+main
+main.o
+
+test_folder/
+copy_folder/
