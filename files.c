@@ -3,6 +3,9 @@
 #include <stdio.h>
 #include <sys/stat.h>
 
+char pathOrigen[MAX_PATH_SIZE];
+char pathDestino[MAX_PATH_SIZE];
+
 // Given a path + folder name it will create a folder in there
 bool createFolder(char *path){
     mkdir(path, 0700);

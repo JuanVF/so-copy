@@ -26,6 +26,7 @@ struct message {
     enum ProcessState mode;
     char text[PATH_SIZE];
 };
+
 void onSendNodeMessage(ProcessItem * process, char message [PATH_SIZE], enum ProcessState mode);
 void onMessageReceived(ProcessItem * process);
 bool initMessageQueue();
@@ -35,11 +36,11 @@ void setProcessFree(pid_t id);
 struct ProcessItem * pickFreeProcess();
 int getAmountFreeResources();
 
-int messageQueueId;
-int isFather;
+extern int messageQueueId;
+extern int isFather;
 
-struct ProcessItem *childInfo;
+extern struct ProcessItem *childInfo;
 
-struct ProcessItem *processPool[POOL_PROCESS_LENGTH];
+extern struct ProcessItem *processPool[POOL_PROCESS_LENGTH];
 
 #endif

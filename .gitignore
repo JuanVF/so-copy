@@ -3,4 +3,4 @@ main
 main.o
 
 test_*/
-copy_folder/
+copy_*/

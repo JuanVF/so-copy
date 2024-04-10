@@ -14,8 +14,10 @@
 #include <unistd.h>
 #include <time.h>
 
-int messageQueueId = -1;
-int isFather = 1;
+int messageQueueId = -1;  // Assuming existing definition
+int isFather = 1;         // Assuming existing definition
+struct ProcessItem *childInfo = NULL; // Define if not already defined
+struct ProcessItem *processPool[POOL_PROCESS_LENGTH] = {NULL}; // Define if not already defined
 
 // onSendNodeMessage will send messages to an specific process
 void onSendNodeMessage(ProcessItem * process, char message [PATH_SIZE], enum ProcessState mode) {
@@ -50,7 +52,11 @@ void onMessageReceived(ProcessItem * process) {
         if (msg.mode == CREATE_FOLDER) {
             char buffer [1028];
 
-            sprintf(buffer, "%s/%s", pathDestino, msg.text);
+            if (msg.text[0] == '/') {
+                sprintf(buffer, "%s%s", pathDestino, msg.text);
+            } else {
+                sprintf(buffer, "%s/%s", pathDestino, msg.text);
+            }
             printf("creando folder %s\n", buffer);
 
             createFolder(buffer);
@@ -60,9 +66,14 @@ void onMessageReceived(ProcessItem * process) {
             char bufferOrigen [1028];
             char bufferDestino [1028];
 
-            sprintf(bufferOrigen, "%s/%s", pathOrigen, msg.text);
-            sprintf(bufferDestino, "%s/%s", pathDestino, msg.text);
-            printf("copiando archivo: %s\n", msg.text);
+            if (msg.text[0] == '/') {
+                sprintf(bufferOrigen, "%s%s", pathOrigen, msg.text);
+                sprintf(bufferDestino, "%s%s", pathDestino, msg.text);
+            } else {
+                sprintf(bufferOrigen, "%s/%s", pathOrigen, msg.text);
+                sprintf(bufferDestino, "%s/%s", pathDestino, msg.text);
+            }
+            printf("copiando archivo: %s hacia %s\n", bufferOrigen, bufferDestino);
 
             copyFile(bufferOrigen, bufferDestino);
         }
@@ -120,11 +131,7 @@ bool initMessageQueue() {
 
     if (messageQueueKey < 0) messageQueueKey *= -1;
 
-    printf("%d\n", (int) messageQueueKey);
-
     messageQueueId = msgget(messageQueueKey, 0666 | IPC_CREAT);
-
-    printf("%d\n", (int) messageQueueId);
 
     return true;
 }

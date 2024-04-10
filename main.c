@@ -29,14 +29,14 @@ void setNodesByFolderName(struct TreeNode *source) {
     struct dirent* entry;
     struct stat entry_info;
 
-    char buffer [2048];
-
     while ((entry = readdir(dir)) != NULL) {
         bool isDot = strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0;
         
         if (isDot) {
             continue;
         }
+
+        char buffer [2048];
 
         snprintf(buffer, sizeof(buffer), "%s/%s", source->path, entry->d_name);
 
@@ -104,6 +104,8 @@ int _initializeTree(struct TreeNode* node, int depth) {
 struct TreeNode* initializeTree(char *sourcePath) {
     struct TreeNode* node = createTree(sourcePath, "", FOLDER, 0, BYTES, NULL);
     
+    node->path = strdup(sourcePath);
+
     _initializeTree(node, 1);
 
     return node;
@@ -187,7 +189,7 @@ void mapTreeToArchiveList(struct LinkedList *archiveList, struct TreeNode *node,
             struct TreeNode * mapped = createTree("", "", ARCHIVE, currentNode->size, currentNode->fileSizeType, NULL);
 
             mapped->path = strdup(newDestiny);
-
+            
             appendLinkedListItem(archiveList, mapped);
         }
     }
@@ -196,6 +198,8 @@ void mapTreeToArchiveList(struct LinkedList *archiveList, struct TreeNode *node,
 void initArchiveCopy(struct LinkedList *archiveList) {
     int resources = getAmountFreeResources();
     int batches = (archiveList->length + resources) / resources;
+
+    printf("Largo de la lista %d\n", archiveList->length);
 
     for (int b = 0; b < batches; b++) {
         int start = b * resources;
@@ -277,6 +281,10 @@ int main (int argc, char *argv[]){
 
         struct LinkedList * archiveList = (struct LinkedList*) malloc(sizeof(struct LinkedList));
 
+        archiveList->length = 0;
+        archiveList->firstNode = NULL;
+        archiveList->lastNode = NULL;
+
         mapTreeToArchiveList(archiveList, sourceNode, 0, "");
 
         initArchiveCopy(archiveList);
@@ -284,13 +292,14 @@ int main (int argc, char *argv[]){
         // let all process die
         for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
             if (processPool[i] != NULL) {
-                onSendNodeMessage(processPool[i], "KILLING", KILLING);
+                char buffito [200];
+                strcpy(buffito, "KILLING");
+                onSendNodeMessage(processPool[i], buffito, KILLING);
             }
         }
 
         for (int i = 0; i < POOL_PROCESS_LENGTH; i++) {
             if (processPool[i] != NULL) {
-                // kill(processPool[i]->pid, SIGKILL);
                 wait(NULL);
             }
         }
