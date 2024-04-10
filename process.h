@@ -27,7 +27,6 @@ struct message {
     char text[PATH_SIZE];
 };
 
-void onSendNodeMessage(ProcessItem * process, char message [PATH_SIZE], enum ProcessState mode);
 void onMessageReceived(ProcessItem * process);
 bool initMessageQueue();
 bool initProcessPool();

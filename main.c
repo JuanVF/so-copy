@@ -8,6 +8,8 @@
 #include <dirent.h>
 #include <sys/msg.h>
 #include <signal.h>
+#include <sys/wait.h>
+#include <sys/types.h>
 
 void setNodesByFolderName(struct TreeNode *source);
 struct TreeNode* initializeTree(char *sourcePath);
@@ -249,7 +251,7 @@ int main (int argc, char *argv[]){
 
     if (!doesPathExists(pathOrigen)) {
         char message [100];
-        sprintf(message, "La ubicación origen \"%s\" ingresada no existe \n", pathOrigen);
+        printf(message, "La ubicación origen \"%s\" ingresada no existe \n", pathOrigen);
         return 1;
     }
 
