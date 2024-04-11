@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define POOL_PROCESS_LENGTH 10
+#define POOL_PROCESS_LENGTH 20
 #define PATH_SIZE 200
 #define FATHER_ID POOL_PROCESS_LENGTH + 1
 

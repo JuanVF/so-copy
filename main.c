@@ -10,6 +10,7 @@
 #include <signal.h>
 #include <sys/wait.h>
 #include <sys/types.h>
+#include <time.h>
 
 void setNodesByFolderName(struct TreeNode *source);
 struct TreeNode* initializeTree(char *sourcePath);
@@ -237,6 +238,12 @@ void initArchiveCopy(struct LinkedList *archiveList) {
 }
 
 int main (int argc, char *argv[]){
+    // time measure
+    clock_t start, end;
+    double cpu_time_used;
+    start = clock(); // starting clock
+    // time measure
+
     // Manually inputs the folders path
     if (argc <= 2) {
         printf("Por favor indique la ubicación de la carpeta que se desea copiar: \n");
@@ -309,6 +316,11 @@ int main (int argc, char *argv[]){
         if (isFather) {
             msgctl(messageQueueId, IPC_RMID, NULL);
         }
+        //time measure
+        end = clock(); // end clock
+        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC; // calculate time passed
+        printf ("El tiempo transcurrido fue: %f \n", cpu_time_used);
+        //time measure
 
         printf("Saliendo...\n");
     }
