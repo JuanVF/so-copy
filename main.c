@@ -238,11 +238,6 @@ void initArchiveCopy(struct LinkedList *archiveList) {
 }
 
 int main (int argc, char *argv[]){
-    // time measure
-    clock_t start, end;
-    double cpu_time_used;
-    start = clock(); // starting clock
-    // time measure
 
     // Manually inputs the folders path
     if (argc <= 2) {
@@ -275,6 +270,11 @@ int main (int argc, char *argv[]){
     initProcessPool();
 
     if (isFather) {
+        // time measure
+        time_t start, end;
+        double dif;
+        time(&start);
+        // time measure
         struct TreeNode *sourceNode = initializeTree(pathOrigen);
 
         if (sourceNode == NULL) {
@@ -317,9 +317,9 @@ int main (int argc, char *argv[]){
             msgctl(messageQueueId, IPC_RMID, NULL);
         }
         //time measure
-        end = clock(); // end clock
-        cpu_time_used = ((double) (end - start)) / CLOCKS_PER_SEC; // calculate time passed
-        printf ("El tiempo transcurrido fue: %f \n", cpu_time_used);
+        time(&end);
+        dif = difftime (end, start);
+        printf("El tiempo de duracion fue de: %.2lf", dif);
         //time measure
 
         printf("Saliendo...\n");
