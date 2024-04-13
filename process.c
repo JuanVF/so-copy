@@ -62,6 +62,18 @@ void onMessageReceived(ProcessItem * process) {
             createFolder(buffer);
         }
 
+        // Creating CSV FILE for testing
+        strncpy(csvFileName,"Bitacora_Prueba_Pool1.csv", MAX_PATH_SIZE - 1);// csvFileName = "Bitacora_Prueba_Pool1.csv";
+        sprintf(pathCSV, "%s/%s",pathDestino, csvFileName);
+        bool exists = doesPathExists(pathCSV);
+        if (!exists){
+            FILE *fpt;
+            fpt = fopen(pathCSV, "w+");
+            fprintf(fpt, "File, Process, Time\n");
+            fclose(fpt);
+            printf("************Se creo el archivo CSV************\n");
+        }
+
         if (msg.mode == CREATE_ARCHIVE) {
             char bufferOrigen [1028];
             char bufferDestino [1028];

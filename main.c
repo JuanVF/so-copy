@@ -139,6 +139,11 @@ void initFolderCopy(struct TreeNode *node, int depth, char *destiny) {
 
             char buffer [PATH_SIZE];
             ProcessItem * process = pickFreeProcess();
+            /*FILE *fpt;
+            sprintf(pathCSV, "%s/%s",pathDestino, csvFileName);
+            fpt = fopen(pathCSV, "r+");
+            fprintf(fpt, "File, Process, Time\n");
+            fclose(fpt);*/
 
             sprintf(buffer, "%s/%s", destiny, currentNode->name);
 
@@ -239,6 +244,7 @@ void initArchiveCopy(struct LinkedList *archiveList) {
 
 int main (int argc, char *argv[]){
 
+
     // Manually inputs the folders path
     if (argc <= 2) {
         printf("Por favor indique la ubicación de la carpeta que se desea copiar: \n");
@@ -319,7 +325,7 @@ int main (int argc, char *argv[]){
         //time measure
         time(&end);
         dif = difftime (end, start);
-        printf("El tiempo de duracion fue de: %.2lf", dif);
+        printf("El tiempo de duracion fue de: %.2lf\n", dif);
         //time measure
 
         printf("Saliendo...\n");
