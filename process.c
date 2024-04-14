@@ -18,6 +18,8 @@ int messageQueueId = -1;  // Assuming existing definition
 int isFather = 1;         // Assuming existing definition
 struct ProcessItem *childInfo = NULL; // Define if not already defined
 struct ProcessItem *processPool[POOL_PROCESS_LENGTH] = {NULL}; // Define if not already defined
+char pathCSV [512];
+char csvFileName[100];
 
 // onSendNodeMessage will send messages to an specific process
 void onSendNodeMessage(ProcessItem * process, char message [PATH_SIZE], enum ProcessState mode) {
@@ -63,7 +65,7 @@ void onMessageReceived(ProcessItem * process) {
         }
 
         // Creating CSV FILE for testing
-        strncpy(csvFileName,"Bitacora_Prueba_Pool1.csv", MAX_PATH_SIZE - 1);// csvFileName = "Bitacora_Prueba_Pool1.csv";
+        strncpy(csvFileName,"Bitacora_Prueba_Pool7.csv", MAX_PATH_SIZE - 1);// csvFileName = "Bitacora_Prueba_Pool1.csv";
         sprintf(pathCSV, "%s/%s",pathDestino, csvFileName);
         bool exists = doesPathExists(pathCSV);
         if (!exists){
@@ -75,6 +77,11 @@ void onMessageReceived(ProcessItem * process) {
         }
 
         if (msg.mode == CREATE_ARCHIVE) {
+            // time measure
+            time_t start, end;
+            double dif;
+            time(&start);
+            // time measure
             char bufferOrigen [1028];
             char bufferDestino [1028];
 
@@ -88,6 +95,16 @@ void onMessageReceived(ProcessItem * process) {
             printf("copiando archivo: %s hacia %s\n", bufferOrigen, bufferDestino);
 
             copyFile(bufferOrigen, bufferDestino);
+            //time measure
+            time(&end);
+            dif = difftime (end, start);
+            //time measure
+            // EDITING CSV FILE//
+            FILE *fpt;
+            fpt = fopen(pathCSV, "a");
+            fprintf(fpt, "%s, %d, %f\n", msg.text, process->pid, dif);
+            fclose(fpt);
+            // EDITING CSV FILE //
         }
 
         struct message fatherMsg;

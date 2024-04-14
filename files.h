@@ -9,8 +9,6 @@
 
 extern char pathOrigen[MAX_PATH_SIZE];
 extern char pathDestino[MAX_PATH_SIZE];
-extern char pathCSV [512];
-extern char csvFileName[100];
 
 bool createFolder(char *path);
 bool copyFile(char *source, char *destination);

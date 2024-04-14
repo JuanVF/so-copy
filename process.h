@@ -5,7 +5,7 @@
 #include <stdbool.h>
 #include <stdlib.h>
 
-#define POOL_PROCESS_LENGTH 20
+#define POOL_PROCESS_LENGTH 7
 #define PATH_SIZE 200
 #define FATHER_ID POOL_PROCESS_LENGTH + 1
 
@@ -38,6 +38,8 @@ int getAmountFreeResources();
 
 extern int messageQueueId;
 extern int isFather;
+extern char pathCSV [512];
+extern char csvFileName [100];
 
 extern struct ProcessItem *childInfo;
 

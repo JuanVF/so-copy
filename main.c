@@ -139,11 +139,6 @@ void initFolderCopy(struct TreeNode *node, int depth, char *destiny) {
 
             char buffer [PATH_SIZE];
             ProcessItem * process = pickFreeProcess();
-            /*FILE *fpt;
-            sprintf(pathCSV, "%s/%s",pathDestino, csvFileName);
-            fpt = fopen(pathCSV, "r+");
-            fprintf(fpt, "File, Process, Time\n");
-            fclose(fpt);*/
 
             sprintf(buffer, "%s/%s", destiny, currentNode->name);
 
@@ -156,7 +151,6 @@ void initFolderCopy(struct TreeNode *node, int depth, char *destiny) {
         for (int i = 0; i < usedResourcesCounter; i++) {
             struct message msg;
             msgrcv(messageQueueId, &msg, sizeof(msg), FATHER_ID, 0);
-
             setProcessFree(atoi(msg.text));
         }
     }
