@@ -65,7 +65,7 @@ void onMessageReceived(ProcessItem * process) {
         }
 
         // Creating CSV FILE for testing
-        strncpy(csvFileName,"Bitacora_Prueba_Pool7.csv", MAX_PATH_SIZE - 1);// csvFileName = "Bitacora_Prueba_Pool1.csv";
+        strncpy(csvFileName,"Bitacora_Prueba_Pool10.csv", MAX_PATH_SIZE - 1);// csvFileName = "Bitacora_Prueba_Pool1.csv";
         sprintf(pathCSV, "%s/%s",pathDestino, csvFileName);
         bool exists = doesPathExists(pathCSV);
         if (!exists){
@@ -78,9 +78,8 @@ void onMessageReceived(ProcessItem * process) {
 
         if (msg.mode == CREATE_ARCHIVE) {
             // time measure
-            time_t start, end;
-            double dif;
-            time(&start);
+            clock_t t;
+            t = clock();
             // time measure
             char bufferOrigen [1028];
             char bufferDestino [1028];
@@ -96,13 +95,13 @@ void onMessageReceived(ProcessItem * process) {
 
             copyFile(bufferOrigen, bufferDestino);
             //time measure
-            time(&end);
-            dif = difftime (end, start);
+            t = clock() - t;
+            double time_taken = ((double)t)/CLOCKS_PER_SEC;
             //time measure
             // EDITING CSV FILE//
             FILE *fpt;
             fpt = fopen(pathCSV, "a");
-            fprintf(fpt, "%s, %d, %f\n", msg.text, process->pid, dif);
+            fprintf(fpt, "%s, %d, %f\n", msg.text, process->pid, time_taken);
             fclose(fpt);
             // EDITING CSV FILE //
         }
